@@ -38,8 +38,8 @@
     .song-meta { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
     .badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; white-space: nowrap; }
     .badge-genre { background: #E1F5EE; color: #085041; }
-    .no-results { text-align: center; padding: 2rem; color: #6b6b6b; font-size: 14px; }
-    .loading { text-align: center; padding: 2rem; color: #6b6b6b; font-size: 14px; }
+    .status-msg { text-align: center; padding: 2rem; font-size: 14px; color: #6b6b6b; }
+    .error-msg { text-align: center; padding: 1.5rem; font-size: 14px; color: #A32D2D; background: #FCEBEB; border-radius: 8px; line-height: 1.6; }
     .request-panel { margin-top: 1rem; padding: 1rem 1.25rem; background: #f4f4f2; border-radius: 12px; border: 1px solid #e5e5e3; }
     .request-panel h3 { font-size: 15px; font-weight: 500; margin-bottom: 10px; }
     .selected-song-info { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
@@ -51,6 +51,7 @@
     textarea { resize: none; }
     .submit-btn { width: 100%; padding: 9px; font-size: 14px; font-weight: 500; border-radius: 8px; border: none; background: #534AB7; color: #fff; cursor: pointer; font-family: inherit; margin-top: 10px; }
     .submit-btn:hover { background: #3C3489; }
+    .submit-btn:disabled { background: #aaa; cursor: default; }
     .success-msg { display: none; text-align: center; padding: 12px; background: #E1F5EE; border-radius: 8px; color: #085041; font-size: 14px; font-weight: 500; margin-top: 10px; }
     .venmo-btn { display: none; text-align: center; margin-top: 10px; padding: 9px; font-size: 14px; font-weight: 500; border-radius: 8px; border: 1.5px solid #3D95CE; background: transparent; color: #3D95CE; text-decoration: none; font-family: inherit; }
     .venmo-btn:hover { background: #EBF5FB; }
@@ -98,7 +99,6 @@
     <button class="tab" onclick="switchTab('queue',this)">Request queue <span class="tab-badge" id="queue-badge">0</span></button>
   </div>
 
-  <!-- REQUEST TAB -->
   <div class="panel active" id="panel-request">
     <div class="search-row">
       <label>Search songs or artists</label>
@@ -115,10 +115,12 @@
       </div>
     </div>
     <div class="results-header">
-      <span id="count">Loading...</span>
+      <span id="count">&nbsp;</span>
       <button class="clear-btn" onclick="clearFilters()">Clear filters</button>
     </div>
-    <div class="song-grid" id="song-grid"><div class="loading">Loading songs from spreadsheet...</div></div>
+    <div class="song-grid" id="song-grid">
+      <div class="status-msg">Loading songs...</div>
+    </div>
 
     <div class="request-panel" id="request-panel" style="display:none;">
       <h3>Request this song</h3>
@@ -149,7 +151,6 @@
     </div>
   </div>
 
-  <!-- QUEUE TAB -->
   <div class="panel" id="panel-queue">
     <div class="stats-row">
       <div class="stat-card"><div class="stat-val" id="stat-total">0</div><div class="stat-label">Total requests</div></div>
@@ -167,89 +168,43 @@
   </div>
 </div>
 
-<!-- Firebase -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, writeBatch, getDocs } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
-  const firebaseConfig = {
+  const app = initializeApp({
     apiKey: "AIzaSyBhGRI16jP8BZ9u5biwsohJPfqfYw96hlg",
     authDomain: "sunfly-songs.firebaseapp.com",
     projectId: "sunfly-songs",
     storageBucket: "sunfly-songs.firebasestorage.app",
     messagingSenderId: "297396593419",
-    appId: "1:297396593419:web:e26c4eb9592c807498780e",
-    measurementId: "G-6YSC5KQ8LV"
-  };
+    appId: "1:297396593419:web:e26c4eb9592c807498780e"
+  });
 
-  const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const requestsCol = collection(db, "requests");
 
-  // Expose Firebase functions to global scope
-  window._db = db;
-  window._addDoc = addDoc;
+  window._db          = db;
+  window._addDoc      = (col, data) => addDoc(col, data);
   window._requestsCol = requestsCol;
-  window._updateDoc = updateDoc;
-  window._deleteDoc = deleteDoc;
-  window._doc = doc;
-  window._writeBatch = writeBatch;
-  window._getDocs = getDocs;
-  window._query = query;
-  window._orderBy = orderBy;
+  window._updateDoc   = (ref, data) => updateDoc(ref, data);
+  window._deleteDoc   = (ref) => deleteDoc(ref);
+  window._docRef      = (id) => doc(db, "requests", id);
 
-  // Live listener — updates queue for ALL visitors in real time
   onSnapshot(query(requestsCol, orderBy("timestamp", "asc")), (snapshot) => {
     window._queue = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     updateBadge();
-    if (document.getElementById('panel-queue').classList.contains('active')) {
-      renderQueue();
-    }
+    if (document.getElementById('panel-queue').classList.contains('active')) renderQueue();
   });
 </script>
 
 <script>
-  const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRBD4UeJE9a0d-cn7wqK1dtWW8nydTfAJ7JtnqwBkLBR58bI-S6t-8FAMxspIEepvKVGvFtsb-TKUR7/pub?gid=0&single=true&output=csv";
-  let songs = [];
+  const CSV_URL   = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRBD4UeJE9a0d-cn7wqK1dtWW8nydTfAJ7JtnqwBkLBR58bI-S6t-8FAMxspIEepvKVGvFtsb-TKUR7/pub?gid=0&single=true&output=csv";
+  const PROXY_URL = "https://api.allorigins.win/raw?url=";
+
+  let songs    = [];
   let selected = null;
   window._queue = [];
-
-  // --- Load songs from Google Sheet CSV ---
-  async function loadSongs() {
-    try {
-      const res = await fetch(CSV_URL);
-      const text = await res.text();
-      const rows = text.trim().split('\n');
-      const headers = rows[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-
-      const songIdx   = headers.indexOf('Song');
-      const artistIdx = headers.indexOf('Artist');
-      const genreIdx  = headers.indexOf('Genre');
-
-      songs = [];
-      for (let i = 1; i < rows.length; i++) {
-        const cols = parseCSVRow(rows[i]);
-        const song   = (cols[songIdx]   || '').trim();
-        const artist = (cols[artistIdx] || '').trim();
-        const genre  = (cols[genreIdx]  || '').trim();
-        if (song && artist) songs.push({ song, artist, genre });
-      }
-
-      // Populate dropdowns
-      const genres  = [...new Set(songs.map(s => s.genre).filter(Boolean))].sort();
-      const artists = [...new Set(songs.map(s => s.artist))].sort();
-      const gSel = document.getElementById('genre');
-      const aSel = document.getElementById('artist');
-      genres.forEach(g  => { const o = document.createElement('option'); o.value = g; o.textContent = g; gSel.appendChild(o); });
-      artists.forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; aSel.appendChild(o); });
-
-      document.getElementById('subtitle').textContent = songs.length + ' songs available — search, filter, and request one below.';
-      render();
-    } catch(e) {
-      document.getElementById('song-grid').innerHTML = '<div class="no-results">Could not load songs. Please refresh.</div>';
-      console.error(e);
-    }
-  }
 
   function parseCSVRow(row) {
     const result = [];
@@ -257,14 +212,70 @@
     for (let i = 0; i < row.length; i++) {
       const ch = row[i];
       if (ch === '"') { inQuote = !inQuote; }
-      else if (ch === ',' && !inQuote) { result.push(cur); cur = ''; }
+      else if (ch === ',' && !inQuote) { result.push(cur.trim()); cur = ''; }
       else { cur += ch; }
     }
-    result.push(cur);
+    result.push(cur.trim());
     return result;
   }
 
-  // --- Tab switching ---
+  function parseCSV(text) {
+    const rows    = text.trim().split(/\r?\n/);
+    const headers = parseCSVRow(rows[0]).map(h => h.replace(/^"|"$/g, ''));
+    const songIdx   = headers.findIndex(h => h.toLowerCase() === 'song');
+    const artistIdx = headers.findIndex(h => h.toLowerCase() === 'artist');
+    const genreIdx  = headers.findIndex(h => h.toLowerCase() === 'genre');
+
+    const result = [];
+    for (let i = 1; i < rows.length; i++) {
+      if (!rows[i].trim()) continue;
+      const cols   = parseCSVRow(rows[i]);
+      const song   = (cols[songIdx]   || '').replace(/^"|"$/g, '').trim();
+      const artist = (cols[artistIdx] || '').replace(/^"|"$/g, '').trim();
+      const genre  = (cols[genreIdx]  || '').replace(/^"|"$/g, '').trim();
+      if (song && artist) result.push({ song, artist, genre });
+    }
+    return result;
+  }
+
+  async function loadSongs() {
+    const grid = document.getElementById('song-grid');
+
+    // Try direct fetch first, then fall back to CORS proxy
+    const urls = [CSV_URL, PROXY_URL + encodeURIComponent(CSV_URL)];
+
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const text = await res.text();
+        if (!text || text.length < 10) throw new Error('Empty response');
+
+        songs = parseCSV(text);
+        if (!songs.length) throw new Error('No songs parsed');
+
+        // Populate dropdowns
+        const genres  = [...new Set(songs.map(s => s.genre).filter(Boolean))].sort();
+        const artists = [...new Set(songs.map(s => s.artist))].sort();
+        const gSel    = document.getElementById('genre');
+        const aSel    = document.getElementById('artist');
+        genres.forEach(g  => { const o = document.createElement('option'); o.value = g; o.textContent = g; gSel.appendChild(o); });
+        artists.forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; aSel.appendChild(o); });
+
+        document.getElementById('subtitle').textContent = songs.length + ' songs available — search, filter, and request one below.';
+        render();
+        return; // success — stop trying
+
+      } catch (err) {
+        console.warn('Fetch failed for', url, err.message);
+      }
+    }
+
+    // Both attempts failed
+    grid.innerHTML = '<div class="error-msg">Could not load the song list.<br>Please check your internet connection and refresh the page.<br><small style="opacity:0.7;font-weight:400;">If this keeps happening, the Google Sheet may need to be re-published.</small></div>';
+    document.getElementById('subtitle').textContent = 'Song list unavailable.';
+  }
+
   function switchTab(name, el) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -273,7 +284,6 @@
     if (name === 'queue') renderQueue();
   }
 
-  // --- Song filtering & rendering ---
   function getFiltered() {
     const q = document.getElementById('search').value.toLowerCase();
     const g = document.getElementById('genre').value;
@@ -291,118 +301,112 @@
     document.getElementById('count').textContent = filtered.length + ' song' + (filtered.length !== 1 ? 's' : '') + ' found';
     const grid = document.getElementById('song-grid');
     grid.innerHTML = '';
-    if (!filtered.length) { grid.innerHTML = '<div class="no-results">No songs match your filters.</div>'; return; }
+    if (!filtered.length) { grid.innerHTML = '<div class="status-msg">No songs match your filters.</div>'; return; }
     filtered.forEach(s => {
       const card = document.createElement('div');
       card.className = 'song-card' + (selected && selected.song === s.song ? ' selected' : '');
       card.onclick = () => selectSong(s);
-      card.innerHTML = '<div class="song-info"><div class="song-title">' + s.song + '</div><div class="song-artist">' + s.artist + '</div></div>'
-        + '<div class="song-meta"><span class="badge badge-genre">' + s.genre + '</span></div>';
+      card.innerHTML = '<div class="song-info"><div class="song-title">' + esc(s.song) + '</div>'
+        + '<div class="song-artist">' + esc(s.artist) + '</div></div>'
+        + '<div class="song-meta"><span class="badge badge-genre">' + esc(s.genre) + '</span></div>';
       grid.appendChild(card);
     });
   }
 
+  function esc(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
   function selectSong(s) {
     selected = s;
-    document.getElementById('req-title').textContent = s.song;
-    document.getElementById('req-artist').textContent = s.artist;
+    document.getElementById('req-title').textContent   = s.song;
+    document.getElementById('req-artist').textContent  = s.artist;
     document.getElementById('request-panel').style.display = 'block';
-    document.getElementById('success-msg').style.display = 'none';
-    document.getElementById('venmo-btn').style.display = 'none';
-    document.getElementById('submit-btn').style.display = 'block';
+    document.getElementById('success-msg').style.display   = 'none';
+    document.getElementById('venmo-btn').style.display     = 'none';
+    document.getElementById('submit-btn').style.display    = 'block';
+    document.getElementById('submit-btn').disabled         = false;
+    document.getElementById('submit-btn').textContent      = 'Submit request';
     render();
-    setTimeout(() => document.getElementById('request-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+    setTimeout(() => document.getElementById('request-panel').scrollIntoView({ behavior:'smooth', block:'nearest' }), 50);
   }
 
   function clearFilters() {
     document.getElementById('search').value = '';
-    document.getElementById('genre').value = '';
+    document.getElementById('genre').value  = '';
     document.getElementById('artist').value = '';
     render();
   }
 
-  // --- Submit request to Firebase ---
   async function submitRequest() {
-    const name    = document.getElementById('req-name').value.trim();
+    const name     = document.getElementById('req-name').value.trim();
     const occasion = document.getElementById('req-occasion').value.trim();
-    const msg     = document.getElementById('req-message').value.trim();
+    const msg      = document.getElementById('req-message').value.trim();
     if (!name) { document.getElementById('req-name').focus(); return; }
 
     const btn = document.getElementById('submit-btn');
-    btn.disabled = true;
+    btn.disabled    = true;
     btn.textContent = 'Submitting...';
 
     try {
       await window._addDoc(window._requestsCol, {
-        song: selected.song,
-        artist: selected.artist,
-        genre: selected.genre,
-        name: name,
-        occasion: occasion,
-        msg: msg,
-        timestamp: Date.now(),
-        played: false
+        song: selected.song, artist: selected.artist, genre: selected.genre,
+        name, occasion, msg, timestamp: Date.now(), played: false
       });
-
       btn.style.display = 'none';
       const s = document.getElementById('success-msg');
       s.style.display = 'block';
-      s.textContent = '"' + selected.song + '" added to the queue for ' + name + '!';
+      s.textContent   = '"' + selected.song + '" added to the queue for ' + name + '!';
       document.getElementById('venmo-btn').style.display = 'block';
-      document.getElementById('req-name').value = '';
+      document.getElementById('req-name').value     = '';
       document.getElementById('req-occasion').value = '';
-      document.getElementById('req-message').value = '';
+      document.getElementById('req-message').value  = '';
     } catch(e) {
-      btn.disabled = false;
+      btn.disabled    = false;
       btn.textContent = 'Submit request';
-      alert('Error submitting request. Please try again.');
+      alert('Error submitting — please try again.');
       console.error(e);
     }
   }
 
-  // --- Queue ---
   function updateBadge() {
     const q = window._queue;
-    document.getElementById('queue-badge').textContent = q.length;
-    document.getElementById('stat-total').textContent = q.length;
-    document.getElementById('stat-pending').textContent = q.filter(r => !r.played).length;
-    document.getElementById('stat-played').textContent = q.filter(r => r.played).length;
+    document.getElementById('queue-badge').textContent   = q.length;
+    document.getElementById('stat-total').textContent    = q.length;
+    document.getElementById('stat-pending').textContent  = q.filter(r => !r.played).length;
+    document.getElementById('stat-played').textContent   = q.filter(r =>  r.played).length;
   }
 
   async function togglePlayed(id) {
     const item = window._queue.find(r => r.id === id);
-    if (!item) return;
-    await window._updateDoc(window._doc(window._db, 'requests', id), { played: !item.played });
+    if (item) await window._updateDoc(window._docRef(id), { played: !item.played });
   }
 
   async function clearPlayed() {
-    const played = window._queue.filter(r => r.played);
-    for (const item of played) {
-      await window._deleteDoc(window._doc(window._db, 'requests', item.id));
-    }
+    for (const item of window._queue.filter(r => r.played))
+      await window._deleteDoc(window._docRef(item.id));
   }
 
   async function clearAll() {
     if (!window._queue.length) return;
-    for (const item of window._queue) {
-      await window._deleteDoc(window._doc(window._db, 'requests', item.id));
-    }
+    for (const item of window._queue)
+      await window._deleteDoc(window._docRef(item.id));
   }
 
   function fmtTime(ts) {
-    return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return new Date(ts).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
   }
 
   function renderQueue() {
-    const c = document.getElementById('queue-container');
     updateBadge();
+    const c = document.getElementById('queue-container');
     const q = window._queue;
     if (!q.length) {
       c.innerHTML = '<div class="queue-empty"><div class="queue-empty-icon">&#127925;</div><div>No requests yet.<br>Head to the Request tab to add songs.</div></div>';
       return;
     }
     const pending = q.filter(r => !r.played);
-    const played  = q.filter(r => r.played);
+    const played  = q.filter(r =>  r.played);
     let html = '<div class="queue-list">';
     let num = 1;
     pending.forEach(item => { html += queueItemHTML(item, num++, false); });
@@ -415,16 +419,16 @@
   }
 
   function queueItemHTML(item, num, played) {
-    const metaParts = [];
-    if (item.name) metaParts.push('Requested by <strong>' + item.name + '</strong>');
-    if (item.occasion) metaParts.push(item.occasion);
+    const meta = [];
+    if (item.name) meta.push('Requested by <strong>' + esc(item.name) + '</strong>');
+    if (item.occasion) meta.push(esc(item.occasion));
     return '<div class="queue-item' + (played ? ' played' : '') + '">'
-      + '<div class="queue-num">' + (num !== null ? num : '✓') + '</div>'
+      + '<div class="queue-num">' + (num !== null ? num : '&#10003;') + '</div>'
       + '<div class="queue-body">'
-      + '<div class="queue-song">' + item.song + '</div>'
-      + '<div class="queue-artist">' + item.artist + ' &middot; ' + item.genre + '</div>'
-      + (metaParts.length ? '<div class="queue-meta">' + metaParts.join(' &middot; ') + '</div>' : '')
-      + (item.msg ? '<div class="queue-msg">"' + item.msg + '"</div>' : '')
+      + '<div class="queue-song">'   + esc(item.song)   + '</div>'
+      + '<div class="queue-artist">' + esc(item.artist) + ' &middot; ' + esc(item.genre) + '</div>'
+      + (meta.length ? '<div class="queue-meta">' + meta.join(' &middot; ') + '</div>' : '')
+      + (item.msg ? '<div class="queue-msg">&ldquo;' + esc(item.msg) + '&rdquo;</div>' : '')
       + '</div>'
       + '<div class="queue-right">'
       + '<span class="queue-time">' + fmtTime(item.timestamp) + '</span>'
@@ -434,7 +438,6 @@
       + '</div></div>';
   }
 
-  // Boot
   loadSongs();
   updateBadge();
   renderQueue();
