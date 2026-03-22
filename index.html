@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Song Request</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f9f9f8;
+      color: #1a1a1a;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .app {
+      max-width: 680px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 14px;
+      border: 1px solid #e5e5e3;
+      padding: 2rem;
+    }
+
+    h1 { font-size: 22px; font-weight: 500; margin-bottom: 4px; }
+    .subtitle { font-size: 14px; color: #6b6b6b; margin-bottom: 1.5rem; }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #e5e5e3;
+      margin-bottom: 1.5rem;
+    }
+    .tab {
+      padding: 8px 18px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #6b6b6b;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+    }
+    .tab.active { color: #534AB7; border-bottom-color: #534AB7; }
+    .tab:hover:not(.active) { color: #1a1a1a; }
+    .tab-badge {
+      display: inline-block;
+      margin-left: 6px;
+      background: #EEEDFE;
+      color: #534AB7;
+      font-size: 11px;
+      padding: 1px 7px;
+      border-radius: 20px;
+      font-weight: 500;
+    }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .search-row { margin-bottom: 10px; }
+    .search-row label,
+    .filter-group label,
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      color: #6b6b6b;
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+
+    input[type="text"], select, textarea {
+      width: 100%;
+      font-size: 14px;
+      padding: 7px 10px;
+      border: 1px solid #d0d0ce;
+      border-radius: 8px;
+      background: #ffffff;
+      color: #1a1a1a;
+      font-family: inherit;
+      outline: none;
+    }
+    input[type="text"]:focus, select:focus, textarea:focus {
+      border-color: #534AB7;
+      box-shadow: 0 0 0 3px rgba(83,74,183,0.12);
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 1rem;
+    }
+
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .results-header span { font-size: 13px; color: #6b6b6b; }
+
+    .clear-btn {
+      font-size: 12px;
+      padding: 4px 10px;
+      border: 1px solid #d0d0ce;
+      border-radius: 8px;
+      background: transparent;
+      color: #6b6b6b;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .clear-btn:hover { background: #f4f4f2; }
+
+    .song-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 380px;
+      overflow-y: auto;
+    }
+
+    .song-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background: #ffffff;
+      border: 1px solid #e5e5e3;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: border-color 0.12s, background 0.12s;
+    }
+    .song-card:hover { border-color: #b0b0ae; background: #f9f9f8; }
+    .song-card.selected { border: 1.5px solid #534AB7; background: #EEEDFE; }
+
+    .song-info { flex: 1; min-width: 0; }
+    .song-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: #1a1a1a;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .song-card.selected .song-title { color: #3C3489; }
+    .song-artist { font-size: 12px; color: #6b6b6b; margin-top: 1px; }
+    .song-card.selected .song-artist { color: #534AB7; }
+
+    .song-meta { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+    .badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .badge-genre { background: #E1F5EE; color: #085041; }
+
+    .no-results { text-align: center; padding: 2rem; color: #6b6b6b; font-size: 14px; }
+
+    .request-panel {
+      margin-top: 1rem;
+      padding: 1rem 1.25rem;
+      background: #f4f4f2;
+      border-radius: 12px;
+      border: 1px solid #e5e5e3;
+    }
+    .request-panel h3 { font-size: 15px; font-weight: 500; margin-bottom: 10px; }
+
+    .selected-song-info { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .song-avatar {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      background: #EEEDFE;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; flex-shrink: 0;
+    }
+    .selected-title { font-size: 14px; font-weight: 500; color: #3C3489; }
+    .selected-artist { font-size: 12px; color: #534AB7; }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .form-group { margin-bottom: 0; }
+
+    textarea { resize: none; }
+
+    .submit-btn {
+      width: 100%;
+      padding: 9px;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 8px;
+      border: none;
+      background: #534AB7;
+      color: #fff;
+      cursor: pointer;
+      font-family: inherit;
+      margin-top: 10px;
+    }
+    .submit-btn:hover { background: #3C3489; }
+
+    .success-msg {
+      display: none;
+      text-align: center;
+      padding: 12px;
+      background: #E1F5EE;
+      border-radius: 8px;
+      color: #085041;
+      font-size: 14px;
+      font-weight: 500;
+      margin-top: 10px;
+    }
+
+    /* Queue tab */
+    .stats-row { display: flex; gap: 10px; margin-bottom: 1.5rem; }
+    .stat-card {
+      flex: 1;
+      background: #f4f4f2;
+      border-radius: 8px;
+      padding: 10px 14px;
+    }
+    .stat-val { font-size: 22px; font-weight: 500; color: #1a1a1a; }
+    .stat-label { font-size: 12px; color: #6b6b6b; margin-top: 2px; }
+
+    .queue-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .queue-header h2 { font-size: 16px; font-weight: 500; }
+    .queue-actions { display: flex; gap: 8px; }
+
+    .queue-empty { text-align: center; padding: 3rem 1rem; color: #6b6b6b; font-size: 14px; }
+    .queue-empty-icon { font-size: 32px; margin-bottom: 8px; }
+
+    .queue-list { display: flex; flex-direction: column; gap: 8px; }
+    .queue-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 14px;
+      background: #ffffff;
+      border: 1px solid #e5e5e3;
+      border-radius: 8px;
+    }
+    .queue-item.played { opacity: 0.45; }
+
+    .queue-num {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      background: #EEEDFE;
+      color: #534AB7;
+      font-size: 12px; font-weight: 500;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 1px;
+    }
+    .queue-item.played .queue-num { background: #f4f4f2; color: #aaa; }
+
+    .queue-body { flex: 1; min-width: 0; }
+    .queue-song { font-size: 14px; font-weight: 500; }
+    .queue-artist { font-size: 12px; color: #6b6b6b; margin-top: 1px; }
+    .queue-meta { font-size: 12px; color: #6b6b6b; margin-top: 4px; }
+    .queue-msg {
+      font-size: 12px; color: #6b6b6b; font-style: italic; margin-top: 3px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    .queue-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+    .queue-time { font-size: 11px; color: #aaa; }
+
+    .mark-btn {
+      font-size: 11px; padding: 3px 9px;
+      border: 1px solid #d0d0ce;
+      border-radius: 20px;
+      background: transparent;
+      color: #6b6b6b;
+      cursor: pointer;
+      white-space: nowrap;
+      font-family: inherit;
+    }
+    .mark-btn:hover { background: #f4f4f2; }
+
+    .played-badge {
+      font-size: 11px; padding: 2px 8px;
+      border-radius: 20px;
+      background: #E1F5EE; color: #085041;
+      font-weight: 500;
+    }
+
+    .section-divider {
+      font-size: 12px; color: #aaa;
+      padding: 8px 4px; margin-top: 4px;
+    }
+
+    @media (max-width: 500px) {
+      .app { padding: 1.25rem; }
+      .filters { grid-template-columns: 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+      .stats-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <h1>Song Request</h1>
+  <p class="subtitle">101 songs available — search, filter, and request one below.</p>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('request', this)">Request a song</button>
+    <button class="tab" onclick="switchTab('queue', this)">Request queue <span class="tab-badge" id="queue-badge">0</span></button>
+  </div>
+
+  <!-- REQUEST TAB -->
+  <div class="panel active" id="panel-request">
+    <div class="search-row">
+      <label>Search songs or artists</label>
+      <input type="text" id="search" placeholder="e.g. Beatles, Weezer, Across..." oninput="render()">
+    </div>
+    <div class="filters">
+      <div class="filter-group">
+        <label>Genre</label>
+        <select id="genre" onchange="render()">
+          <option value="">All genres</option>
+          <option>Classic rock</option>
+          <option>Dance</option>
+          <option>Folk/Country</option>
+          <option>Hard to classify</option>
+          <option>Indie rock</option>
+          <option>Oldies</option>
+          <option>Pop punk</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Artist</label>
+        <select id="artist" onchange="render()"></select>
+      </div>
+    </div>
+    <div class="results-header">
+      <span id="count">Loading...</span>
+      <button class="clear-btn" onclick="clearFilters()">Clear filters</button>
+    </div>
+    <div class="song-grid" id="song-grid"></div>
+
+    <div class="request-panel" id="request-panel" style="display:none;">
+      <h3>Request this song</h3>
+      <div class="selected-song-info">
+        <div class="song-avatar">🎵</div>
+        <div>
+          <div class="selected-title" id="req-title"></div>
+          <div class="selected-artist" id="req-artist"></div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Your name <span style="color:#A32D2D;">*</span></label>
+          <input type="text" id="req-name" placeholder="Jane">
+        </div>
+        <div class="form-group">
+          <label>Occasion (optional)</label>
+          <input type="text" id="req-occasion" placeholder="Birthday, anniversary...">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label>Message for the band (optional)</label>
+        <textarea id="req-message" rows="2" placeholder="Any dedications or notes..."></textarea>
+      </div>
+      <button class="submit-btn" id="submit-btn" onclick="submitRequest()">Submit request</button>
+      <div class="success-msg" id="success-msg"></div>
+    </div>
+  </div>
+
+  <!-- QUEUE TAB -->
+  <div class="panel" id="panel-queue">
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-val" id="stat-total">0</div>
+        <div class="stat-label">Total requests</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-pending">0</div>
+        <div class="stat-label">In queue</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-played">0</div>
+        <div class="stat-label">Played</div>
+      </div>
+    </div>
+    <div class="queue-header">
+      <h2>Request queue</h2>
+      <div class="queue-actions">
+        <button class="clear-btn" onclick="clearPlayed()">Clear played</button>
+        <button class="clear-btn" onclick="clearAll()">Clear all</button>
+      </div>
+    </div>
+    <div id="queue-container"></div>
+  </div>
+</div>
+
+<script>
+  const songs = [
+    {song:"A Million Years",artist:"Alex Ebert",lead:"Michael",key:"G",harp:true,genre:"Indie rock"},
+    {song:"Tunnels",artist:"Arcade Fire",lead:"Jon",key:"D",harp:false,genre:"Indie rock"},
+    {song:"Sloop John B",artist:"Beach Boys",lead:"Jon",key:"G",harp:false,genre:"Oldies"},
+    {song:"Hello, Goodbye",artist:"Beatles",lead:"Jon",key:"C",harp:false,genre:"Oldies"},
+    {song:"Drive My Car",artist:"Beatles",lead:"Both",key:"D",harp:false,genre:"Oldies"},
+    {song:"Norwegian Wood",artist:"Beatles",lead:"Both",key:"D",harp:false,genre:"Oldies"},
+    {song:"I Feel Fine",artist:"Beatles",lead:"Jon",key:"D",harp:false,genre:"Oldies"},
+    {song:"Across the Universe",artist:"Beatles",lead:"Jon",key:"D",harp:false,genre:"Oldies"},
+    {song:"Act Naturally",artist:"Beatles",lead:"Michael",key:"E",harp:false,genre:"Folk/Country"},
+    {song:"What Goes On",artist:"Beatles",lead:"Michael",key:"E",harp:false,genre:"Oldies"},
+    {song:"I'm Only Sleeping",artist:"Beatles",lead:"Both",key:"Em",harp:true,genre:"Oldies"},
+    {song:"I've Just Seen A Face",artist:"Beatles",lead:"Both",key:"G",harp:false,genre:"Oldies"},
+    {song:"I Saw Her Standing There",artist:"Beatles",lead:"Michael",key:"A",harp:false,genre:"Oldies"},
+    {song:"Two Of Us",artist:"Beatles",lead:"Both",key:"G",harp:false,genre:"Oldies"},
+    {song:"All My Loving",artist:"Beatles",lead:"Michael",key:"G",harp:false,genre:"Oldies"},
+    {song:"Eight Days A Week",artist:"Beatles",lead:"Michael",key:"G",harp:false,genre:"Oldies"},
+    {song:"Tell Me Why",artist:"Beatles",lead:"Michael",key:"G",harp:false,genre:"Oldies"},
+    {song:"Going Away To College",artist:"Blink 182",lead:"Michael",key:"A",harp:false,genre:"Pop punk"},
+    {song:"All The Small Things",artist:"Blink 182",lead:"Michael",key:"G",harp:false,genre:"Pop punk"},
+    {song:"Aliens Exist",artist:"Blink 182",lead:"Jon",key:"B",harp:false,genre:"Pop punk"},
+    {song:"Blowin' In The Wind",artist:"Bob Dylan",lead:"Both",key:"G",harp:true,genre:"Folk/Country"},
+    {song:"The Times They Are A Changin'",artist:"Bob Dylan",lead:"Jon",key:"G",harp:false,genre:"Folk/Country"},
+    {song:"I Fought The Law",artist:"Bobby Fuller Five",lead:"Both",key:"G",harp:false,genre:"Classic rock"},
+    {song:"First Day of My Life",artist:"Bright Eyes",lead:"Jon",key:"G",harp:false,genre:"Indie rock"},
+    {song:"Lua",artist:"Bright Eyes",lead:"Jon",key:"G",harp:false,genre:"Indie rock"},
+    {song:"Car",artist:"Built to Spill",lead:"Jon",key:"G",harp:false,genre:"Indie rock"},
+    {song:"The Distance",artist:"Cake",lead:"Michael",key:"G",harp:false,genre:"Classic rock"},
+    {song:"I Want You To Want Me",artist:"Cheap Trick",lead:"Both",key:"A",harp:false,genre:"Classic rock"},
+    {song:"Bad Moon Rising",artist:"Creedence Clearwater Revival",lead:"Both",key:"G",harp:false,genre:"Classic rock"},
+    {song:"Proud Mary",artist:"Creedence Clearwater Revival",lead:"Both",key:"C",harp:false,genre:"Classic rock"},
+    {song:"Down on the Corner",artist:"Creedence Clearwater Revival",lead:"Both",key:"C",harp:false,genre:"Classic rock"},
+    {song:"Runaway",artist:"Del Shannon",lead:"Jon",key:"Am",harp:false,genre:"Oldies"},
+    {song:"Chapel of Love",artist:"Dixie Cups",lead:"Both",key:"G",harp:false,genre:"Oldies"},
+    {song:"Oh Lonesome Me",artist:"Don Gibson",lead:"Michael",key:"G",harp:false,genre:"Folk/Country"},
+    {song:"Take It Easy",artist:"Eagles",lead:"Both",key:"G",harp:false,genre:"Classic rock"},
+    {song:"Summertime Blues",artist:"Eddie Cochran",lead:"Both",key:"A",harp:false,genre:"Classic rock"},
+    {song:"All I Have To Do Is Dream",artist:"Everly Brothers",lead:"Both",key:"G",harp:false,genre:"Oldies"},
+    {song:"Wake Up",artist:"Flaming Lips",lead:"Jon",key:"G",harp:false,genre:"Indie rock"},
+    {song:"White Winter Hymnal",artist:"Fleet Foxes",lead:"Both",key:"G",harp:false,genre:"Indie rock"},
+    {song:"The Chain",artist:"Fleetwood Mac",lead:"Both",key:"Am",harp:false,genre:"Classic rock"},
+    {song:"Go Your Own Way",artist:"Fleetwood Mac",lead:"Both",key:"F",harp:false,genre:"Classic rock"},
+    {song:"Sin City",artist:"Flying Burrito Brothers",lead:"Both",key:"G",harp:false,genre:"Folk/Country"},
+    {song:"Everything Is Free",artist:"Gillian Welch",lead:"Both",key:"G",harp:false,genre:"Folk/Country"},
+    {song:"Good Riddance",artist:"Green Day",lead:"Jon",key:"G",harp:false,genre:"Pop punk"},
+    {song:"Basket Case",artist:"Green Day",lead:"Both",key:"Eb",harp:false,genre:"Pop punk"},
+    {song:"Running On Empty",artist:"Jackson Browne",lead:"Both",key:"D",harp:false,genre:"Classic rock"},
+    {song:"Fire and Rain",artist:"James Taylor",lead:"Jon",key:"C",harp:false,genre:"Classic rock"},
+    {song:"Country Roads",artist:"John Denver",lead:"Both",key:"G",harp:false,genre:"Folk/Country"},
+    {song:"Angel From Montgomery",artist:"John Prine",lead:"Both",key:"C",harp:false,genre:"Folk/Country"},
+    {song:"Dear Abby",artist:"John Prine",lead:"Jon",key:"G",harp:false,genre:"Folk/Country"},
+    {song:"Illegal Smile",artist:"John Prine",lead:"Jon",key:"G",harp:false,genre:"Folk/Country"},
+    {song:"Dawning of the Day",artist:"King's Harvest",lead:"Both",key:"G",harp:false,genre:"Classic rock"},
+    {song:"Help Me Make It Through the Night",artist:"Kris Kristofferson",lead:"Both",key:"G",harp:false,genre:"Folk/Country"},
+    {song:"Part of Your World",artist:"Little Mermaid",lead:"Michael",key:"G",harp:false,genre:"Hard to classify"},
+    {song:"The Christian Life",artist:"Louvin Brothers",lead:"Both",key:"G",harp:false,genre:"Folk/Country"},
+    {song:"The Book of Love",artist:"Magnetic Fields",lead:"Jon",key:"G",harp:false,genre:"Hard to classify"},
+    {song:"Nothing Else Matters",artist:"Metallica",lead:"Jon",key:"Em",harp:false,genre:"Classic rock"},
+    {song:"No Children",artist:"Mountain Goats",lead:"Jon",key:"G",harp:false,genre:"Indie rock"},
+    {song:"Rainbow Connection",artist:"Muppets",lead:"Jon",key:"G",harp:false,genre:"Hard to classify"},
+    {song:"Heart of Gold",artist:"Neil Young",lead:"Both",key:"C",harp:true,genre:"Classic rock"},
+    {song:"The Needle and the Damage Done",artist:"Neil Young",lead:"Jon",key:"D",harp:false,genre:"Classic rock"},
+    {song:"In The Aeroplane Over The Sea",artist:"Neutral Milk Hotel",lead:"Both",key:"G",harp:false,genre:"Indie rock"},
+    {song:"Spirit In The Sky",artist:"Norman Greenbaum",lead:"Both",key:"G",harp:false,genre:"Classic rock"},
+    {song:"Try A Little Tenderness",artist:"Otis Redding",lead:"Michael",key:"C",harp:false,genre:"Oldies"},
+    {song:"Bros",artist:"Panda Bear",lead:"Jon",key:"G",harp:false,genre:"Indie rock"},
+    {song:"Me and Julio Down by the Schoolyard",artist:"Paul Simon",lead:"Both",key:"G",harp:false,genre:"Oldies"},
+    {song:"Kodachrome",artist:"Paul Simon",lead:"Both",key:"G",harp:false,genre:"Oldies"},
+    {song:"For Emily Whenever I May Find Her",artist:"Paul Simon",lead:"Jon",key:"G",harp:false,genre:"Folk/Country"},
+    {song:"Life on a Chain",artist:"Pete Yorn",lead:"Jon",key:"G",harp:false,genre:"Indie rock"},
+    {song:"Wish You Were Here",artist:"Pink Floyd",lead:"Both",key:"G",harp:false,genre:"Classic rock"},
+    {song:"Gigantic",artist:"Pixies",lead:"Michael",key:"G",harp:false,genre:"Indie rock"},
+    {song:"Such Great Heights",artist:"Postal Service",lead:"Jon",key:"G",harp:false,genre:"Indie rock"},
+    {song:"Purple Rain",artist:"Prince",lead:"Michael",key:"Bb",harp:false,genre:"Classic rock"},
+    {song:"Fake Plastic Trees",artist:"Radiohead",lead:"Jon",key:"G",harp:false,genre:"Indie rock"},
+    {song:"I Wanna Be Sedated",artist:"Ramones",lead:"Both",key:"E",harp:false,genre:"Pop punk"},
+    {song:"Judy Is A Punk",artist:"Ramones",lead:"Both",key:"G",harp:false,genre:"Pop punk"},
+    {song:"Dancing On My Own",artist:"Robyn",lead:"Michael",key:"G",harp:false,genre:"Dance"},
+    {song:"Cupid",artist:"Sam Cooke",lead:"Michael",key:"C",harp:false,genre:"Oldies"},
+    {song:"Mary Ellen Carter",artist:"Stan Rogers",lead:"Jon",key:"",harp:false,genre:"Folk/Country"},
+    {song:"A Living God",artist:"Sunfly",lead:"Michael",key:"G",harp:true,genre:"Hard to classify"},
+    {song:"The Weight",artist:"The Band",lead:"Both",key:"G",harp:false,genre:"Classic rock"},
+    {song:"Police & Thieves",artist:"The Clash",lead:"Michael",key:"G",harp:false,genre:"Classic rock"},
+    {song:"Heartbeats",artist:"The Knife",lead:"Michael",key:"G",harp:false,genre:"Indie rock"},
+    {song:"Someday",artist:"The Strokes",lead:"Michael",key:"G",harp:false,genre:"Indie rock"},
+    {song:"Happy Together",artist:"The Turtles",lead:"Jon",key:"Am",harp:false,genre:"Oldies"},
+    {song:"If I Needed You",artist:"Townes Van Zandt",lead:"Jon",key:"G",harp:true,genre:"Folk/Country"},
+    {song:"Down In The River To Pray",artist:"Traditional",lead:"Both",key:"G",harp:false,genre:"Folk/Country"},
+    {song:"Will The Circle Be Unbroken",artist:"Traditional",lead:"Michael",key:"G",harp:false,genre:"Folk/Country"},
+    {song:"Brown Eyed Girl",artist:"Van Morrison",lead:"Jon",key:"C",harp:false,genre:"Oldies"},
+    {song:"Blister In The Sun",artist:"Violent Femmes",lead:"Michael",key:"G",harp:false,genre:"Indie rock"},
+    {song:"Surf Wax America",artist:"Weezer",lead:"Jon",key:"G",harp:false,genre:"Pop punk"},
+    {song:"Across The Sea",artist:"Weezer",lead:"Jon",key:"G",harp:false,genre:"Indie rock"},
+    {song:"Teenage Dirtbag",artist:"Wheatus",lead:"Jon",key:"E",harp:false,genre:"Pop punk"},
+    {song:"Apple Blossom",artist:"White Stripes",lead:"Jon",key:"Am",harp:false,genre:"Indie rock"}
+  ];
+
+  // Populate artist dropdown
+  const artists = [...new Set(songs.map(s => s.artist))].sort();
+  const artistSel = document.getElementById('artist');
+  artistSel.innerHTML = '<option value="">All artists</option>';
+  artists.forEach(a => {
+    const o = document.createElement('option');
+    o.value = a; o.textContent = a;
+    artistSel.appendChild(o);
+  });
+
+  let selected = null;
+  let queue = [];
+  let queueCounter = 0;
+
+  function switchTab(name, el) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('panel-' + name).classList.add('active');
+    if (name === 'queue') renderQueue();
+  }
+
+  function getFiltered() {
+    const q = document.getElementById('search').value.toLowerCase();
+    const g = document.getElementById('genre').value;
+    const a = document.getElementById('artist').value;
+    return songs.filter(s => {
+      if (q && !s.song.toLowerCase().includes(q) && !s.artist.toLowerCase().includes(q)) return false;
+      if (g && s.genre !== g) return false;
+      if (a && s.artist !== a) return false;
+      return true;
+    });
+  }
+
+  function render() {
+    const filtered = getFiltered();
+    document.getElementById('count').textContent = `${filtered.length} song${filtered.length !== 1 ? 's' : ''} found`;
+    const grid = document.getElementById('song-grid');
+    grid.innerHTML = '';
+    if (!filtered.length) {
+      grid.innerHTML = '<div class="no-results">No songs match your filters.</div>';
+      return;
+    }
+    filtered.forEach(s => {
+      const card = document.createElement('div');
+      card.className = 'song-card' + (selected && selected.song === s.song ? ' selected' : '');
+      card.onclick = () => selectSong(s);
+      card.innerHTML = `
+        <div class="song-info">
+          <div class="song-title">${s.song}</div>
+          <div class="song-artist">${s.artist}</div>
+        </div>
+        <div class="song-meta">
+          <span class="badge badge-genre">${s.genre}</span>
+        </div>`;
+      grid.appendChild(card);
+    });
+  }
+
+  function selectSong(s) {
+    selected = s;
+    document.getElementById('req-title').textContent = s.song;
+    document.getElementById('req-artist').textContent = s.artist;
+    document.getElementById('request-panel').style.display = 'block';
+    document.getElementById('success-msg').style.display = 'none';
+    document.getElementById('submit-btn').style.display = 'block';
+    render();
+    setTimeout(() => document.getElementById('request-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+  }
+
+  function clearFilters() {
+    document.getElementById('search').value = '';
+    document.getElementById('genre').value = '';
+    document.getElementById('artist').value = '';
+    render();
+  }
+
+  function submitRequest() {
+    const name = document.getElementById('req-name').value.trim();
+    const occasion = document.getElementById('req-occasion').value.trim();
+    const msg = document.getElementById('req-message').value.trim();
+    if (!name) { document.getElementById('req-name').focus(); return; }
+    queueCounter++;
+    queue.push({ id: queueCounter, song: selected.song, artist: selected.artist, genre: selected.genre, lead: selected.lead, key: selected.key, name, occasion, msg, time: new Date(), played: false });
+    updateBadge();
+    document.getElementById('submit-btn').style.display = 'none';
+    const s = document.getElementById('success-msg');
+    s.style.display = 'block';
+    s.textContent = `"${selected.song}" added to the queue for ${name}!`;
+    document.getElementById('req-name').value = '';
+    document.getElementById('req-occasion').value = '';
+    document.getElementById('req-message').value = '';
+  }
+
+  function updateBadge() {
+    document.getElementById('queue-badge').textContent = queue.length;
+    document.getElementById('stat-total').textContent = queue.length;
+    document.getElementById('stat-pending').textContent = queue.filter(q => !q.played).length;
+    document.getElementById('stat-played').textContent = queue.filter(q => q.played).length;
+  }
+
+  function togglePlayed(id) {
+    const item = queue.find(q => q.id === id);
+    if (item) { item.played = !item.played; updateBadge(); renderQueue(); }
+  }
+
+  function clearPlayed() {
+    queue = queue.filter(q => !q.played);
+    let i = 1; queue.forEach(q => q.id = i++); queueCounter = queue.length;
+    updateBadge(); renderQueue();
+  }
+
+  function clearAll() {
+    if (!queue.length) return;
+    queue = []; queueCounter = 0;
+    updateBadge(); renderQueue();
+  }
+
+  function fmtTime(d) {
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function renderQueue() {
+    const c = document.getElementById('queue-container');
+    updateBadge();
+    if (!queue.length) {
+      c.innerHTML = '<div class="queue-empty"><div class="queue-empty-icon">🎶</div><div>No requests yet.<br>Head to the Request tab to add songs.</div></div>';
+      return;
+    }
+    const pending = queue.filter(q => !q.played);
+    const played = queue.filter(q => q.played);
+    let html = '<div class="queue-list">';
+    let num = 1;
+    pending.forEach(item => { html += queueItemHTML(item, num++, false); });
+    if (played.length) {
+      html += `<div class="section-divider">Played</div>`;
+      played.forEach(item => { html += queueItemHTML(item, null, true); });
+    }
+    html += '</div>';
+    c.innerHTML = html;
+  }
+
+  function queueItemHTML(item, num, played) {
+    const metaParts = [];
+    if (item.name) metaParts.push(`Requested by <strong>${item.name}</strong>`);
+    if (item.occasion) metaParts.push(item.occasion);
+    return `<div class="queue-item${played ? ' played' : ''}">
+      <div class="queue-num">${num !== null ? num : '✓'}</div>
+      <div class="queue-body">
+        <div class="queue-song">${item.song}</div>
+        <div class="queue-artist">${item.artist} · ${item.genre}</div>
+        ${metaParts.length ? `<div class="queue-meta">${metaParts.join(' · ')}</div>` : ''}
+        ${item.msg ? `<div class="queue-msg">"${item.msg}"</div>` : ''}
+      </div>
+      <div class="queue-right">
+        <span class="queue-time">${fmtTime(item.time)}</span>
+        ${played ? `<span class="played-badge">Played</span>` : `<button class="mark-btn" onclick="togglePlayed(${item.id})">Mark played</button>`}
+      </div>
+    </div>`;
+  }
+
+  render();
+  updateBadge();
+</script>
+</body>
+</html>
