@@ -5,86 +5,81 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sunfly Song Request</title>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f9f9f8; color: #1a1a1a; min-height: 100vh; padding: 2rem 1rem; }
-    .app { max-width: 680px; margin: 0 auto; background: #fff; border-radius: 14px; border: 1px solid #e5e5e3; padding: 2rem; }
-    .band-logo { display: block; max-width: 300px; margin: 0 auto 0.5rem auto; }
-    h1 { font-size: 22px; font-weight: 500; margin-bottom: 4px; text-align: center; }
-    .subtitle { font-size: 14px; color: #6b6b6b; margin-bottom: 1.5rem; text-align: center; }
-    .tabs { display: flex; border-bottom: 1px solid #e5e5e3; margin-bottom: 1.5rem; }
-    .tab { padding: 8px 18px; font-size: 14px; font-weight: 500; color: #6b6b6b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; background: none; border-top: none; border-left: none; border-right: none; }
-    .tab.active { color: #534AB7; border-bottom-color: #534AB7; }
-    .tab:hover:not(.active) { color: #1a1a1a; }
-    .tab-badge { display: inline-block; margin-left: 6px; background: #EEEDFE; color: #534AB7; font-size: 11px; padding: 1px 7px; border-radius: 20px; font-weight: 500; }
-    .panel { display: none; } .panel.active { display: block; }
-    .search-row { margin-bottom: 10px; }
-    .search-row label, .filter-group label, .form-group label { display: block; font-size: 12px; color: #6b6b6b; margin-bottom: 4px; font-weight: 500; }
-    input[type="text"], select, textarea { width: 100%; font-size: 14px; padding: 7px 10px; border: 1px solid #d0d0ce; border-radius: 8px; background: #fff; color: #1a1a1a; font-family: inherit; outline: none; }
-    input[type="text"]:focus, select:focus, textarea:focus { border-color: #534AB7; box-shadow: 0 0 0 3px rgba(83,74,183,0.12); }
-    .filters { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1rem; }
-    .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-    .results-header span { font-size: 13px; color: #6b6b6b; }
-    .clear-btn { font-size: 12px; padding: 4px 10px; border: 1px solid #d0d0ce; border-radius: 8px; background: transparent; color: #6b6b6b; cursor: pointer; font-family: inherit; }
-    .clear-btn:hover { background: #f4f4f2; }
-    .song-grid { display: flex; flex-direction: column; gap: 6px; max-height: 380px; overflow-y: auto; }
-    .song-card { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: #fff; border: 1px solid #e5e5e3; border-radius: 8px; cursor: pointer; transition: border-color 0.12s, background 0.12s; }
-    .song-card:hover { border-color: #b0b0ae; background: #f9f9f8; }
-    .song-card.selected { border: 1.5px solid #534AB7; background: #EEEDFE; }
-    .song-info { flex: 1; min-width: 0; }
-    .song-title { font-size: 14px; font-weight: 500; color: #1a1a1a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .song-card.selected .song-title { color: #3C3489; }
-    .song-artist { font-size: 12px; color: #6b6b6b; margin-top: 1px; }
-    .song-card.selected .song-artist { color: #534AB7; }
-    .song-meta { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
-    .badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; white-space: nowrap; }
-    .badge-genre { background: #E1F5EE; color: #085041; }
-    .no-results { text-align: center; padding: 2rem; color: #6b6b6b; font-size: 14px; }
-    .request-panel { margin-top: 1rem; padding: 1rem 1.25rem; background: #f4f4f2; border-radius: 12px; border: 1px solid #e5e5e3; }
-    .request-panel h3 { font-size: 15px; font-weight: 500; margin-bottom: 10px; }
-    .selected-song-info { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-    .song-avatar { width: 36px; height: 36px; border-radius: 8px; background: #EEEDFE; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
-    .selected-title { font-size: 14px; font-weight: 500; color: #3C3489; }
-    .selected-artist { font-size: 12px; color: #534AB7; }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-    .form-group { margin-bottom: 0; }
-    textarea { resize: none; }
-    .submit-btn { width: 100%; padding: 9px; font-size: 14px; font-weight: 500; border-radius: 8px; border: none; background: #534AB7; color: #fff; cursor: pointer; font-family: inherit; margin-top: 10px; }
-    .submit-btn:hover { background: #3C3489; }
-    .submit-btn:disabled { background: #aaa; cursor: default; }
-    .success-msg { display: none; text-align: center; padding: 12px; background: #E1F5EE; border-radius: 8px; color: #085041; font-size: 14px; font-weight: 500; margin-top: 10px; }
-    .venmo-btn { display: none; text-align: center; margin-top: 10px; padding: 9px; font-size: 14px; font-weight: 500; border-radius: 8px; border: 1.5px solid #3D95CE; background: transparent; color: #3D95CE; text-decoration: none; font-family: inherit; }
-    .venmo-btn:hover { background: #EBF5FB; }
-    .stats-row { display: flex; gap: 10px; margin-bottom: 1.5rem; }
-    .stat-card { flex: 1; background: #f4f4f2; border-radius: 8px; padding: 10px 14px; }
-    .stat-val { font-size: 22px; font-weight: 500; color: #1a1a1a; }
-    .stat-label { font-size: 12px; color: #6b6b6b; margin-top: 2px; }
-    .queue-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-    .queue-header h2 { font-size: 16px; font-weight: 500; }
-    .queue-actions { display: flex; gap: 8px; }
-    .queue-empty { text-align: center; padding: 3rem 1rem; color: #6b6b6b; font-size: 14px; }
-    .queue-empty-icon { font-size: 32px; margin-bottom: 8px; }
-    .queue-list { display: flex; flex-direction: column; gap: 8px; }
-    .queue-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; background: #fff; border: 1px solid #e5e5e3; border-radius: 8px; }
-    .queue-item.played { opacity: 0.45; }
-    .queue-num { width: 24px; height: 24px; border-radius: 50%; background: #EEEDFE; color: #534AB7; font-size: 12px; font-weight: 500; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
-    .queue-item.played .queue-num { background: #f4f4f2; color: #aaa; }
-    .queue-body { flex: 1; min-width: 0; }
-    .queue-song { font-size: 14px; font-weight: 500; }
-    .queue-artist { font-size: 12px; color: #6b6b6b; margin-top: 1px; }
-    .queue-meta { font-size: 12px; color: #6b6b6b; margin-top: 4px; }
-    .queue-msg { font-size: 12px; color: #6b6b6b; font-style: italic; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .queue-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
-    .queue-time { font-size: 11px; color: #aaa; }
-    .mark-btn { font-size: 11px; padding: 3px 9px; border: 1px solid #d0d0ce; border-radius: 20px; background: transparent; color: #6b6b6b; cursor: pointer; white-space: nowrap; font-family: inherit; }
-    .mark-btn:hover { background: #f4f4f2; }
-    .played-badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; background: #E1F5EE; color: #085041; font-weight: 500; }
-    .section-divider { font-size: 12px; color: #aaa; padding: 8px 4px; margin-top: 4px; }
-    @media (max-width: 500px) {
-      .app { padding: 1.25rem; }
-      .filters { grid-template-columns: 1fr; }
-      .form-row { grid-template-columns: 1fr; }
-      .stats-row { flex-direction: column; }
-    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f9f9f8;color:#1a1a1a;min-height:100vh;padding:2rem 1rem}
+    .app{max-width:680px;margin:0 auto;background:#fff;border-radius:14px;border:1px solid #e5e5e3;padding:2rem}
+    .band-logo{display:block;max-width:300px;margin:0 auto .5rem auto}
+    h1{font-size:22px;font-weight:500;margin-bottom:4px;text-align:center}
+    .subtitle{font-size:14px;color:#6b6b6b;margin-bottom:1.5rem;text-align:center}
+    .tabs{display:flex;border-bottom:1px solid #e5e5e3;margin-bottom:1.5rem}
+    .tab{padding:8px 18px;font-size:14px;font-weight:500;color:#6b6b6b;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;background:none;border-top:none;border-left:none;border-right:none}
+    .tab.active{color:#534AB7;border-bottom-color:#534AB7}
+    .tab:hover:not(.active){color:#1a1a1a}
+    .tab-badge{display:inline-block;margin-left:6px;background:#EEEDFE;color:#534AB7;font-size:11px;padding:1px 7px;border-radius:20px;font-weight:500}
+    .panel{display:none}.panel.active{display:block}
+    .search-row{margin-bottom:10px}
+    .search-row label,.filter-group label,.form-group label{display:block;font-size:12px;color:#6b6b6b;margin-bottom:4px;font-weight:500}
+    input[type="text"],select,textarea{width:100%;font-size:14px;padding:7px 10px;border:1px solid #d0d0ce;border-radius:8px;background:#fff;color:#1a1a1a;font-family:inherit;outline:none}
+    input[type="text"]:focus,select:focus,textarea:focus{border-color:#534AB7;box-shadow:0 0 0 3px rgba(83,74,183,.12)}
+    .filters{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem}
+    .results-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+    .results-header span{font-size:13px;color:#6b6b6b}
+    .clear-btn{font-size:12px;padding:4px 10px;border:1px solid #d0d0ce;border-radius:8px;background:transparent;color:#6b6b6b;cursor:pointer;font-family:inherit}
+    .clear-btn:hover{background:#f4f4f2}
+    .song-grid{display:flex;flex-direction:column;gap:6px;max-height:380px;overflow-y:auto}
+    .song-card{display:flex;align-items:center;gap:12px;padding:10px 14px;background:#fff;border:1px solid #e5e5e3;border-radius:8px;cursor:pointer;transition:border-color .12s,background .12s}
+    .song-card:hover{border-color:#b0b0ae;background:#f9f9f8}
+    .song-card.selected{border:1.5px solid #534AB7;background:#EEEDFE}
+    .song-info{flex:1;min-width:0}
+    .song-title{font-size:14px;font-weight:500;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .song-card.selected .song-title{color:#3C3489}
+    .song-artist{font-size:12px;color:#6b6b6b;margin-top:1px}
+    .song-card.selected .song-artist{color:#534AB7}
+    .song-meta{display:flex;gap:6px;align-items:center;flex-shrink:0}
+    .badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;white-space:nowrap}
+    .badge-genre{background:#E1F5EE;color:#085041}
+    .no-results{text-align:center;padding:2rem;color:#6b6b6b;font-size:14px}
+    .request-panel{margin-top:1rem;padding:1rem 1.25rem;background:#f4f4f2;border-radius:12px;border:1px solid #e5e5e3}
+    .request-panel h3{font-size:15px;font-weight:500;margin-bottom:10px}
+    .selected-song-info{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+    .song-avatar{width:36px;height:36px;border-radius:8px;background:#EEEDFE;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+    .selected-title{font-size:14px;font-weight:500;color:#3C3489}
+    .selected-artist{font-size:12px;color:#534AB7}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+    .form-group{margin-bottom:0}
+    textarea{resize:none}
+    .submit-btn{width:100%;padding:9px;font-size:14px;font-weight:500;border-radius:8px;border:none;background:#534AB7;color:#fff;cursor:pointer;font-family:inherit;margin-top:10px}
+    .submit-btn:hover{background:#3C3489}
+    .submit-btn:disabled{background:#aaa;cursor:default}
+    .success-msg{display:none;text-align:center;padding:12px;background:#E1F5EE;border-radius:8px;color:#085041;font-size:14px;font-weight:500;margin-top:10px}
+    .venmo-btn{display:none;text-align:center;margin-top:10px;padding:9px;font-size:14px;font-weight:500;border-radius:8px;border:1.5px solid #3D95CE;background:transparent;color:#3D95CE;text-decoration:none;font-family:inherit}
+    .venmo-btn:hover{background:#EBF5FB}
+    .stats-row{display:flex;gap:10px;margin-bottom:1.5rem}
+    .stat-card{flex:1;background:#f4f4f2;border-radius:8px;padding:10px 14px}
+    .stat-val{font-size:22px;font-weight:500;color:#1a1a1a}
+    .stat-label{font-size:12px;color:#6b6b6b;margin-top:2px}
+    .queue-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .queue-header h2{font-size:16px;font-weight:500}
+    .queue-actions{display:flex;gap:8px}
+    .queue-empty{text-align:center;padding:3rem 1rem;color:#6b6b6b;font-size:14px}
+    .queue-empty-icon{font-size:32px;margin-bottom:8px}
+    .queue-list{display:flex;flex-direction:column;gap:8px}
+    .queue-item{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:#fff;border:1px solid #e5e5e3;border-radius:8px}
+    .queue-item.played{opacity:.45}
+    .queue-num{width:24px;height:24px;border-radius:50%;background:#EEEDFE;color:#534AB7;font-size:12px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+    .queue-item.played .queue-num{background:#f4f4f2;color:#aaa}
+    .queue-body{flex:1;min-width:0}
+    .queue-song{font-size:14px;font-weight:500}
+    .queue-artist{font-size:12px;color:#6b6b6b;margin-top:1px}
+    .queue-meta{font-size:12px;color:#6b6b6b;margin-top:4px}
+    .queue-msg{font-size:12px;color:#6b6b6b;font-style:italic;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .queue-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
+    .queue-time{font-size:11px;color:#aaa}
+    .mark-btn{font-size:11px;padding:3px 9px;border:1px solid #d0d0ce;border-radius:20px;background:transparent;color:#6b6b6b;cursor:pointer;white-space:nowrap;font-family:inherit}
+    .mark-btn:hover{background:#f4f4f2}
+    .played-badge{font-size:11px;padding:2px 8px;border-radius:20px;background:#E1F5EE;color:#085041;font-weight:500}
+    .section-divider{font-size:12px;color:#aaa;padding:8px 4px;margin-top:4px}
+    @media(max-width:500px){.app{padding:1.25rem}.filters{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.stats-row{flex-direction:column}}
   </style>
 </head>
 <body>
@@ -244,39 +239,31 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
   import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
-
   const app = initializeApp({
-    apiKey: "AIzaSyBhGRI16jP8BZ9u5biwsohJPfqfYw96hlg",
-    authDomain: "sunfly-songs.firebaseapp.com",
-    projectId: "sunfly-songs",
-    storageBucket: "sunfly-songs.firebasestorage.app",
-    messagingSenderId: "297396593419",
-    appId: "1:297396593419:web:e26c4eb9592c807498780e"
+    apiKey:"AIzaSyBhGRI16jP8BZ9u5biwsohJPfqfYw96hlg",
+    authDomain:"sunfly-songs.firebaseapp.com",
+    projectId:"sunfly-songs",
+    storageBucket:"sunfly-songs.firebasestorage.app",
+    messagingSenderId:"297396593419",
+    appId:"1:297396593419:web:e26c4eb9592c807498780e"
   });
-
   const db = getFirestore(app);
-  const requestsCol = collection(db, "requests");
-
-  window._db          = db;
-  window._addDoc      = (data) => addDoc(requestsCol, data);
-  window._updateDoc   = (id, data) => updateDoc(doc(db, "requests", id), data);
-  window._deleteDoc   = (id) => deleteDoc(doc(db, "requests", id));
-
-  onSnapshot(query(requestsCol, orderBy("timestamp", "asc")), (snapshot) => {
-    window._queue = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  const col = collection(db, "requests");
+  window._fbAdd    = (data) => addDoc(col, data);
+  window._fbUpdate = (id, data) => updateDoc(doc(db,"requests",id), data);
+  window._fbDelete = (id) => deleteDoc(doc(db,"requests",id));
+  onSnapshot(query(col, orderBy("timestamp","asc")), (snap) => {
+    window._queue = snap.docs.map(d => ({id:d.id,...d.data()}));
     updateBadge();
-    if (document.getElementById('panel-queue').classList.contains('active')) renderQueue();
+    if (document.getElementById("panel-queue").classList.contains("active")) renderQueue();
   });
 </script>
-
 <script>
-  // =====================================================================
-  // SONG LIST — to add or remove songs, edit the array below.
-  // Each entry needs: song (title), artist, and genre.
-  // Genre must match one of the existing genres or add a new <option>
-  // to the Genre <select> in the HTML above.
-  // =====================================================================
-  const songs = [
+// ── SONG LIST ──────────────────────────────────────────────────────────────
+// To add a song: {song:'Title', artist:'Artist Name', genre:'Genre'}
+// Genre must match one of the existing options in the Genre dropdown above.
+// ──────────────────────────────────────────────────────────────────────────
+const songs = [
   {song:'A Million Years', artist:'Alex Ebert', genre:'Indie rock'},
   {song:'Tunnels', artist:'Arcade Fire', genre:'Indie rock'},
   {song:'Sloop John B', artist:'Beach Boys', genre:'Oldies'},
@@ -380,165 +367,166 @@
   {song:'Apple Blossom', artist:'White Stripes', genre:'Indie rock'}
 ];
 
-  let selected = null;
-  window._queue = [];
+let selected = null;
+window._queue = [];
 
-  function switchTab(name, el) {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    el.classList.add('active');
-    document.getElementById('panel-' + name).classList.add('active');
-    if (name === 'queue') renderQueue();
-  }
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+  if (name === 'queue') renderQueue();
+}
 
-  function getFiltered() {
-    const q = document.getElementById('search').value.toLowerCase();
-    const g = document.getElementById('genre').value;
-    const a = document.getElementById('artist').value;
-    return songs.filter(s => {
-      if (q && !s.song.toLowerCase().includes(q) && !s.artist.toLowerCase().includes(q)) return false;
-      if (g && s.genre !== g) return false;
-      if (a && s.artist !== a) return false;
-      return true;
-    });
-  }
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
-  function render() {
-    const filtered = getFiltered();
-    document.getElementById('count').textContent = filtered.length + ' song' + (filtered.length !== 1 ? 's' : '') + ' found';
-    const grid = document.getElementById('song-grid');
-    grid.innerHTML = '';
-    if (!filtered.length) { grid.innerHTML = '<div class="no-results">No songs match your filters.</div>'; return; }
-    filtered.forEach(s => {
-      const card = document.createElement('div');
-      card.className = 'song-card' + (selected && selected.song === s.song ? ' selected' : '');
-      card.onclick = () => selectSong(s);
-      card.innerHTML = '<div class="song-info"><div class="song-title">' + esc(s.song) + '</div>'
-        + '<div class="song-artist">' + esc(s.artist) + '</div></div>'
-        + '<div class="song-meta"><span class="badge badge-genre">' + esc(s.genre) + '</span></div>';
-      grid.appendChild(card);
-    });
-  }
+function getFiltered() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const g = document.getElementById('genre').value;
+  const a = document.getElementById('artist').value;
+  return songs.filter(s => {
+    if (q && !s.song.toLowerCase().includes(q) && !s.artist.toLowerCase().includes(q)) return false;
+    if (g && s.genre !== g) return false;
+    if (a && s.artist !== a) return false;
+    return true;
+  });
+}
 
-  function esc(str) {
-    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
+function render() {
+  const filtered = getFiltered();
+  document.getElementById('count').textContent = filtered.length + ' song' + (filtered.length !== 1 ? 's' : '') + ' found';
+  const grid = document.getElementById('song-grid');
+  grid.innerHTML = '';
+  if (!filtered.length) { grid.innerHTML = '<div class="no-results">No songs match your filters.</div>'; return; }
+  filtered.forEach(s => {
+    const card = document.createElement('div');
+    card.className = 'song-card' + (selected && selected.song === s.song ? ' selected' : '');
+    card.onclick = () => selectSong(s);
+    card.innerHTML = '<div class="song-info"><div class="song-title">' + esc(s.song) + '</div>'
+      + '<div class="song-artist">' + esc(s.artist) + '</div></div>'
+      + '<div class="song-meta"><span class="badge badge-genre">' + esc(s.genre) + '</span></div>';
+    grid.appendChild(card);
+  });
+}
 
-  function selectSong(s) {
-    selected = s;
-    document.getElementById('req-title').textContent  = s.song;
-    document.getElementById('req-artist').textContent = s.artist;
-    document.getElementById('request-panel').style.display = 'block';
-    document.getElementById('success-msg').style.display   = 'none';
-    document.getElementById('venmo-btn').style.display     = 'none';
-    document.getElementById('submit-btn').style.display    = 'block';
-    document.getElementById('submit-btn').disabled         = false;
-    document.getElementById('submit-btn').textContent      = 'Submit request';
-    render();
-    setTimeout(() => document.getElementById('request-panel').scrollIntoView({ behavior:'smooth', block:'nearest' }), 50);
-  }
-
-  function clearFilters() {
-    document.getElementById('search').value = '';
-    document.getElementById('genre').value  = '';
-    document.getElementById('artist').value = '';
-    render();
-  }
-
-  async function submitRequest() {
-    const name     = document.getElementById('req-name').value.trim();
-    const occasion = document.getElementById('req-occasion').value.trim();
-    const msg      = document.getElementById('req-message').value.trim();
-    if (!name) { document.getElementById('req-name').focus(); return; }
-    const btn = document.getElementById('submit-btn');
-    btn.disabled = true; btn.textContent = 'Submitting...';
-    try {
-      await window._addDoc({ song: selected.song, artist: selected.artist, genre: selected.genre, name, occasion, msg, timestamp: Date.now(), played: false });
-      btn.style.display = 'none';
-      const el = document.getElementById('success-msg');
-      el.style.display = 'block';
-      el.textContent = '"' + selected.song + '" added to the queue for ' + name + '!';
-      document.getElementById('venmo-btn').style.display = 'block';
-      document.getElementById('req-name').value = '';
-      document.getElementById('req-occasion').value = '';
-      document.getElementById('req-message').value = '';
-    } catch(e) {
-      btn.disabled = false; btn.textContent = 'Submit request';
-      alert('Error submitting — please try again.');
-      console.error(e);
-    }
-  }
-
-  function updateBadge() {
-    const q = window._queue;
-    document.getElementById('queue-badge').textContent  = q.length;
-    document.getElementById('stat-total').textContent   = q.length;
-    document.getElementById('stat-pending').textContent = q.filter(r => !r.played).length;
-    document.getElementById('stat-played').textContent  = q.filter(r =>  r.played).length;
-  }
-
-  async function togglePlayed(id) {
-    const item = window._queue.find(r => r.id === id);
-    if (item) await window._updateDoc(id, { played: !item.played });
-  }
-
-  async function clearPlayed() {
-    for (const item of window._queue.filter(r => r.played)) await window._deleteDoc(item.id);
-  }
-
-  async function clearAll() {
-    if (!window._queue.length) return;
-    for (const item of window._queue) await window._deleteDoc(item.id);
-  }
-
-  function fmtTime(ts) {
-    return new Date(ts).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
-  }
-
-  function renderQueue() {
-    updateBadge();
-    const c = document.getElementById('queue-container');
-    const q = window._queue;
-    if (!q.length) {
-      c.innerHTML = '<div class="queue-empty"><div class="queue-empty-icon">&#127925;</div><div>No requests yet.<br>Head to the Request tab to add songs.</div></div>';
-      return;
-    }
-    const pending = q.filter(r => !r.played);
-    const played  = q.filter(r =>  r.played);
-    let html = '<div class="queue-list">';
-    let num = 1;
-    pending.forEach(item => { html += queueItemHTML(item, num++, false); });
-    if (played.length) {
-      html += '<div class="section-divider">Played</div>';
-      played.forEach(item => { html += queueItemHTML(item, null, true); });
-    }
-    html += '</div>';
-    c.innerHTML = html;
-  }
-
-  function queueItemHTML(item, num, played) {
-    const meta = [];
-    if (item.name) meta.push('Requested by <strong>' + esc(item.name) + '</strong>');
-    if (item.occasion) meta.push(esc(item.occasion));
-    return '<div class="queue-item' + (played ? ' played' : '') + '">'
-      + '<div class="queue-num">' + (num !== null ? num : '&#10003;') + '</div>'
-      + '<div class="queue-body">'
-      + '<div class="queue-song">'   + esc(item.song)   + '</div>'
-      + '<div class="queue-artist">' + esc(item.artist) + ' &middot; ' + esc(item.genre) + '</div>'
-      + (meta.length ? '<div class="queue-meta">' + meta.join(' &middot; ') + '</div>' : '')
-      + (item.msg ? '<div class="queue-msg">&ldquo;' + esc(item.msg) + '&rdquo;</div>' : '')
-      + '</div>'
-      + '<div class="queue-right">'
-      + '<span class="queue-time">' + fmtTime(item.timestamp) + '</span>'
-      + (played
-          ? '<span class="played-badge">Played</span>'
-          : '<button class="mark-btn" onclick="togglePlayed('' + item.id + '')">Mark played</button>')
-      + '</div></div>';
-  }
-
+function selectSong(s) {
+  selected = s;
+  document.getElementById('req-title').textContent  = s.song;
+  document.getElementById('req-artist').textContent = s.artist;
+  document.getElementById('request-panel').style.display = 'block';
+  document.getElementById('success-msg').style.display   = 'none';
+  document.getElementById('venmo-btn').style.display     = 'none';
+  document.getElementById('submit-btn').style.display    = 'block';
+  document.getElementById('submit-btn').disabled         = false;
+  document.getElementById('submit-btn').textContent      = 'Submit request';
   render();
+  setTimeout(() => document.getElementById('request-panel').scrollIntoView({behavior:'smooth',block:'nearest'}), 50);
+}
+
+function clearFilters() {
+  document.getElementById('search').value = '';
+  document.getElementById('genre').value  = '';
+  document.getElementById('artist').value = '';
+  render();
+}
+
+async function submitRequest() {
+  const name     = document.getElementById('req-name').value.trim();
+  const occasion = document.getElementById('req-occasion').value.trim();
+  const msg      = document.getElementById('req-message').value.trim();
+  if (!name) { document.getElementById('req-name').focus(); return; }
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.textContent = 'Submitting...';
+  try {
+    await window._fbAdd({song:selected.song, artist:selected.artist, genre:selected.genre, name, occasion, msg, timestamp:Date.now(), played:false});
+    btn.style.display = 'none';
+    const el = document.getElementById('success-msg');
+    el.style.display = 'block';
+    el.textContent = '"' + selected.song + '" added to the queue for ' + name + '!';
+    document.getElementById('venmo-btn').style.display = 'block';
+    document.getElementById('req-name').value = '';
+    document.getElementById('req-occasion').value = '';
+    document.getElementById('req-message').value = '';
+  } catch(e) {
+    btn.disabled = false; btn.textContent = 'Submit request';
+    alert('Error submitting — please try again.');
+    console.error(e);
+  }
+}
+
+function updateBadge() {
+  const q = window._queue;
+  document.getElementById('queue-badge').textContent  = q.length;
+  document.getElementById('stat-total').textContent   = q.length;
+  document.getElementById('stat-pending').textContent = q.filter(r => !r.played).length;
+  document.getElementById('stat-played').textContent  = q.filter(r =>  r.played).length;
+}
+
+async function togglePlayed(id) {
+  const item = window._queue.find(r => r.id === id);
+  if (item) await window._fbUpdate(id, {played: !item.played});
+}
+
+async function clearPlayed() {
+  for (const item of window._queue.filter(r => r.played)) await window._fbDelete(item.id);
+}
+
+async function clearAll() {
+  if (!window._queue.length) return;
+  for (const item of window._queue) await window._fbDelete(item.id);
+}
+
+function fmtTime(ts) {
+  return new Date(ts).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+}
+
+function renderQueue() {
   updateBadge();
-  renderQueue();
+  const c = document.getElementById('queue-container');
+  const q = window._queue;
+  if (!q.length) {
+    c.innerHTML = '<div class="queue-empty"><div class="queue-empty-icon">&#127925;</div><div>No requests yet.<br>Head to the Request tab to add songs.</div></div>';
+    return;
+  }
+  const pending = q.filter(r => !r.played);
+  const played  = q.filter(r =>  r.played);
+  let html = '<div class="queue-list">';
+  let num = 1;
+  pending.forEach(item => { html += queueItemHTML(item, num++, false); });
+  if (played.length) {
+    html += '<div class="section-divider">Played</div>';
+    played.forEach(item => { html += queueItemHTML(item, null, true); });
+  }
+  html += '</div>';
+  c.innerHTML = html;
+}
+
+function queueItemHTML(item, num, played) {
+  const meta = [];
+  if (item.name) meta.push('Requested by <strong>' + esc(item.name) + '</strong>');
+  if (item.occasion) meta.push(esc(item.occasion));
+  const actionBtn = played
+    ? '<span class="played-badge">Played</span>'
+    : '<button class="mark-btn" data-id="' + item.id + '" onclick="togglePlayed(this.dataset.id)">Mark played</button>';
+  return '<div class="queue-item' + (played ? ' played' : '') + '">'
+    + '<div class="queue-num">' + (num !== null ? num : '&#10003;') + '</div>'
+    + '<div class="queue-body">'
+    + '<div class="queue-song">'   + esc(item.song)   + '</div>'
+    + '<div class="queue-artist">' + esc(item.artist) + ' &middot; ' + esc(item.genre) + '</div>'
+    + (meta.length ? '<div class="queue-meta">' + meta.join(' &middot; ') + '</div>' : '')
+    + (item.msg ? '<div class="queue-msg">&ldquo;' + esc(item.msg) + '&rdquo;</div>' : '')
+    + '</div>'
+    + '<div class="queue-right">'
+    + '<span class="queue-time">' + fmtTime(item.timestamp) + '</span>'
+    + actionBtn
+    + '</div></div>';
+}
+
+render();
+updateBadge();
+renderQueue();
 </script>
 </body>
 </html>
